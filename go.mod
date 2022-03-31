@@ -39,3 +39,5 @@ require (
 	go.opentelemetry.io/otel/trace v0.20.0
 	go.uber.org/zap v1.18.1
 )
+
+replace github.com/libp2p/go-libp2p-kbucket => ../go-libp2p-kbucket/
