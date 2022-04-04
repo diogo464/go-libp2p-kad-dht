@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"git.d464.sh/adc/telemetry/pkg/measurements"
+	"git.d464.sh/adc/telemetry/pkg/snapshot"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -288,7 +290,8 @@ func (dht *IpfsDHT) getValues(ctx context.Context, key string, stopQuery chan st
 	go func() {
 		defer close(valCh)
 		defer close(lookupResCh)
-		lookupRes, err := dht.runLookupWithFollowup(ctx, key,
+		lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, snapshot.KademliaMessageTypeGetValue)
+		lookupRes, err := dht.runLookupWithFollowup(lookupCtx, key,
 			func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 				// For DHT query command
 				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
@@ -513,7 +516,8 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key multihash
 		}
 	}
 
-	lookupRes, err := dht.runLookupWithFollowup(ctx, string(key),
+	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, snapshot.KademliaMessageTypeGetProviders)
+	lookupRes, err := dht.runLookupWithFollowup(lookupCtx, string(key),
 		func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 			// For DHT query command
 			routing.PublishQueryEvent(ctx, &routing.QueryEvent{
@@ -581,7 +585,8 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (_ peer.AddrInfo, 
 		return pi, nil
 	}
 
-	lookupRes, err := dht.runLookupWithFollowup(ctx, string(id),
+	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, snapshot.KademliaMessageTypeFindNode)
+	lookupRes, err := dht.runLookupWithFollowup(lookupCtx, string(id),
 		func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 			// For DHT query command
 			routing.PublishQueryEvent(ctx, &routing.QueryEvent{

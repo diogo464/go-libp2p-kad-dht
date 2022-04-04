@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"git.d464.sh/adc/telemetry/pkg/measurements"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -126,7 +127,9 @@ func (m *messageSenderImpl) SendMessage(ctx context.Context, p peer.ID, pmes *pb
 		logger.Debugw("message failed", "error", err, "to", p)
 		return err
 	}
-
+	measurements.WithKademlia(func(k measurements.Kademlia) {
+		k.IncMessageOut(measurements.ConvertKademliaMessageType(pmes.GetType()))
+	})
 	stats.Record(ctx,
 		metrics.SentMessages.M(1),
 		metrics.SentBytes.M(int64(pmes.Size())),

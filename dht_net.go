@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"git.d464.sh/adc/telemetry/pkg/measurements"
 	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal/net"
@@ -100,6 +101,7 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 			metrics.ReceivedBytes.M(int64(msgLen)),
 		)
 
+		measurements.WithKademlia(func(k measurements.Kademlia) { k.IncMessageIn(measurements.ConvertKademliaMessageType(req.GetType())) })
 		handler := dht.handlerForMsgType(req.GetType())
 		if handler == nil {
 			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
