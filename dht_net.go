@@ -120,7 +120,9 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 				zap.Int32("type", int32(req.GetType())),
 				zap.Binary("key", req.GetKey()))
 		}
+		handlerStart := time.Now()
 		resp, err := handler(ctx, mPeer, &req)
+		handlerDuration := time.Since(handlerStart)
 		if err != nil {
 			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
 			if c := baseLogger.Check(zap.DebugLevel, "error handling message"); c != nil {
@@ -144,7 +146,9 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		}
 
 		// send out response msg
+		writeStart := time.Now()
 		err = net.WriteMsg(s, resp)
+		writeDuration := time.Since(writeStart)
 		if err != nil {
 			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
 			if c := baseLogger.Check(zap.DebugLevel, "error writing response"); c != nil {
@@ -157,6 +161,10 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		}
 
 		elapsedTime := time.Since(startTime)
+
+		measurements.WithKademlia(func(k measurements.Kademlia) {
+			k.PushHandler(mPeer, measurements.ConvertKademliaMessageType(req.GetType()), handlerDuration, writeDuration)
+		})
 
 		if c := baseLogger.Check(zap.DebugLevel, "responded to message"); c != nil {
 			c.Write(zap.String("from", mPeer.String()),
