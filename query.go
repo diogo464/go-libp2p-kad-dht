@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"git.d464.sh/adc/telemetry/pkg/measurements"
 	"git.d464.sh/adc/telemetry/pkg/proto/snapshot"
+	"git.d464.sh/adc/telemetry/pkg/telemetry/measurements"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
