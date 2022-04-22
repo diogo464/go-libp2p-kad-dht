@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"git.d464.sh/adc/telemetry/pkg/proto/snapshot"
+	"git.d464.sh/adc/telemetry/pkg/telemetry/datapoint"
 	"git.d464.sh/adc/telemetry/pkg/telemetry/measurements"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -419,7 +419,7 @@ func (q *query) queryPeer(ctx context.Context, ch chan<- *queryUpdate, p peer.ID
 	queryDuration := time.Since(startQuery)
 
 	measurements.WithKademlia(func(k measurements.Kademlia) {
-		qtype := ctx.Value(measurements.KademliaQueryTypeKey{}).(snapshot.KademliaMessageType)
+		qtype := ctx.Value(measurements.KademliaQueryTypeKey{}).(datapoint.KademliaMessageType)
 		k.PushQuery(p, qtype, queryDuration)
 	})
 	// query successful, try to add to RT
