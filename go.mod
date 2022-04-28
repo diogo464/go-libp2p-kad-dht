@@ -32,10 +32,10 @@ require (
 	github.com/multiformats/go-multibase v0.0.3
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/multiformats/go-multistream v0.2.2
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1
 	go.opencensus.io v0.23.0
-	go.opentelemetry.io/otel v0.20.0
-	go.opentelemetry.io/otel/trace v0.20.0
+	go.opentelemetry.io/otel v1.6.3
+	go.opentelemetry.io/otel/trace v1.6.3
 	go.uber.org/zap v1.19.0
 )

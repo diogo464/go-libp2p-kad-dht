@@ -9,6 +9,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-kad-dht/internal"
 	peerstoreImpl "github.com/libp2p/go-libp2p-peerstore"
 
 	lru "github.com/hashicorp/golang-lru/simplelru"
@@ -231,6 +232,9 @@ func (pm *ProviderManager) run(ctx context.Context, proc goprocess.Process) {
 
 // AddProvider adds a provider
 func (pm *ProviderManager) AddProvider(ctx context.Context, k []byte, provInfo peer.AddrInfo) error {
+	ctx, span := internal.StartSpan(ctx, "ProviderManager.AddProvider")
+	defer span.End()
+
 	if provInfo.ID != pm.self { // don't add own addrs.
 		pm.pstore.AddAddrs(provInfo.ID, provInfo.Addrs, peerstore.ProviderAddrTTL)
 	}
@@ -278,6 +282,9 @@ func mkProvKey(k []byte) string {
 // GetProviders returns the set of providers for the given key.
 // This method _does not_ copy the set. Do not modify it.
 func (pm *ProviderManager) GetProviders(ctx context.Context, k []byte) ([]peer.AddrInfo, error) {
+	ctx, span := internal.StartSpan(ctx, "ProviderManager.GetProviders")
+	defer span.End()
+
 	gp := &getProv{
 		ctx:  ctx,
 		key:  k,

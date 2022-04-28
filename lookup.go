@@ -7,6 +7,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p-kad-dht/internal"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
@@ -17,6 +20,9 @@ import (
 // If the context is canceled, this function will return the context error along
 // with the closest K peers it has found so far.
 func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID, error) {
+	ctx, span := internal.StartSpan(ctx, "IpfsDHT.GetClosestPeers", trace.WithAttributes(attribute.String("Key", key)))
+	defer span.End()
+
 	if key == "" {
 		return nil, fmt.Errorf("can't lookup empty key")
 	}
