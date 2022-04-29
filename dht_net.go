@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"git.d464.sh/adc/telemetry/pkg/telemetry/measurements"
+	"github.com/diogo464/telemetry/pkg/telemetry/measurements"
 	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal/net"

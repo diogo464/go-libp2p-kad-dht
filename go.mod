@@ -3,7 +3,7 @@ module github.com/libp2p/go-libp2p-kad-dht
 go 1.16
 
 require (
-	git.d464.sh/adc/telemetry v0.0.0-00010101000000-000000000000
+	github.com/diogo464/telemetry v0.0.0-00010101000000-000000000000
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.3.0
@@ -43,4 +43,4 @@ require (
 
 replace github.com/libp2p/go-libp2p-kbucket => ../go-libp2p-kbucket/
 
-replace git.d464.sh/adc/telemetry => ../../
+replace github.com/diogo464/telemetry => ../../
