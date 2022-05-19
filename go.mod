@@ -41,6 +41,8 @@ require (
 	go.uber.org/zap v1.21.0
 )
 
+replace github.com/libp2p/go-libp2p => ../go-libp2p/
+
 replace github.com/libp2p/go-libp2p-kbucket => ../go-libp2p-kbucket/
 
 replace github.com/diogo464/telemetry => ../../
