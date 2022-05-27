@@ -32,10 +32,21 @@ var lruCacheSize = 256
 var batchBufferSize = 256
 var log = logging.Logger("providers")
 
+type ProviderRecordEntry struct {
+	Peer        peer.ID
+	LastRefresh time.Time
+}
+
+type ProviderRecord struct {
+	Key     []byte
+	Entries []ProviderRecordEntry
+}
+
 // ProviderStore represents a store that associates peers and their addresses to keys.
 type ProviderStore interface {
 	AddProvider(ctx context.Context, key []byte, prov peer.AddrInfo) error
 	GetProviders(ctx context.Context, key []byte) ([]peer.AddrInfo, error)
+	GetProviderRecords(ctx context.Context) ([]ProviderRecord, error)
 }
 
 // ProviderManager adds and pulls providers out of the datastore,
@@ -294,6 +305,105 @@ func (pm *ProviderManager) GetProviders(ctx context.Context, k []byte) ([]peer.A
 	case peers := <-gp.resp:
 		return peerstoreImpl.PeerInfos(pm.pstore, peers), nil
 	}
+}
+
+func (pm *ProviderManager) GetProviderRecords(ctx context.Context) ([]ProviderRecord, error) {
+	q, err := pm.dstore.Query(ctx, dsq.Query{
+		Prefix: ProvidersKeyPrefix,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// string(key []byte)
+	cachedKeys := make(map[string]struct{})
+	// string(key base32) -> string(key []byte)
+	cachedDecodes := make(map[string]string)
+	// string(key []byte) -> []ProviderRecordEntry
+	entriesByKey := make(map[string][]ProviderRecordEntry)
+
+	// get all providers from cache
+	for _, ikey := range pm.cache.Keys() {
+		key := ikey.(string)
+		ipset, _ := pm.cache.Get(key)
+		pset := ipset.(*providerSet)
+
+		entries := make([]ProviderRecordEntry, 0, len(pset.set))
+		for provider, lastRefresh := range pset.set {
+			entries = append(entries, ProviderRecordEntry{
+				Peer:        provider,
+				LastRefresh: lastRefresh,
+			})
+		}
+		entriesByKey[key] = entries
+		cachedKeys[key] = struct{}{}
+	}
+
+LOOP:
+	for {
+		select {
+		case result, chanOk := <-q.Next():
+			if !chanOk {
+				break LOOP
+			}
+			if result.Error != nil {
+				continue
+			}
+
+			// key format '/provider/<base32 key>/<base32 peerid>'
+			// keySplit := [ "", "provider", "<base32 key>", "<base32 peerid>" ]
+			keySplit := strings.Split(result.Key, "/")
+			if len(keySplit) != 4 {
+				continue
+			}
+
+			keyB32 := keySplit[2]
+			key, ok := cachedDecodes[keyB32]
+			if !ok {
+				bkey, err := base32.RawStdEncoding.DecodeString(keyB32)
+				if err != nil {
+					continue
+				}
+				key = string(bkey)
+				cachedDecodes[keyB32] = key
+			}
+
+			if _, cachedKey := cachedKeys[key]; cachedKey {
+				continue
+			}
+
+			pidBytes, err := base32.RawStdEncoding.DecodeString(keySplit[3])
+			if err != nil {
+				continue
+			}
+			pid := peer.ID(pidBytes)
+
+			lastRefresh, err := readTimeValue(result.Value)
+			if err != nil {
+				continue
+			}
+
+			if _, hasEntries := entriesByKey[key]; !hasEntries {
+				entriesByKey[key] = make([]ProviderRecordEntry, 0, 1)
+			}
+			entriesByKey[key] = append(entriesByKey[key], ProviderRecordEntry{
+				Peer:        pid,
+				LastRefresh: lastRefresh,
+			})
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+
+	records := make([]ProviderRecord, 0, len(entriesByKey))
+	for k, v := range entriesByKey {
+		records = append(records, ProviderRecord{
+			Key:     []byte(k),
+			Entries: v,
+		})
+	}
+
+	return records, nil
 }
 
 func (pm *ProviderManager) getProvidersForKey(ctx context.Context, k []byte) ([]peer.ID, error) {
