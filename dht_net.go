@@ -101,7 +101,7 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 			metrics.ReceivedBytes.M(int64(msgLen)),
 		)
 
-		measurements.WithKademlia(func(k measurements.Kademlia) { k.IncMessageIn(measurements.ConvertKademliaMessageType(req.GetType())) })
+		measurements.WithKademlia(func(k measurements.Kademlia) { k.IncMessageIn(req.GetType()) })
 		handler := dht.handlerForMsgType(req.GetType())
 		if handler == nil {
 			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
@@ -163,7 +163,7 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		elapsedTime := time.Since(startTime)
 
 		measurements.WithKademlia(func(k measurements.Kademlia) {
-			k.PushHandler(mPeer, measurements.ConvertKademliaMessageType(req.GetType()), handlerDuration, writeDuration)
+			k.PushHandler(mPeer, req.GetType(), handlerDuration, writeDuration)
 		})
 
 		if c := baseLogger.Check(zap.DebugLevel, "responded to message"); c != nil {

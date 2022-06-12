@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/diogo464/telemetry/pkg/telemetry/datapoint"
 	"github.com/diogo464/telemetry/pkg/telemetry/measurements"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -18,6 +17,7 @@ import (
 	u "github.com/ipfs/go-ipfs-util"
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
 	internalConfig "github.com/libp2p/go-libp2p-kad-dht/internal/config"
+	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	"github.com/libp2p/go-libp2p-kad-dht/qpeerset"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 	record "github.com/libp2p/go-libp2p-record"
@@ -290,7 +290,7 @@ func (dht *IpfsDHT) getValues(ctx context.Context, key string, stopQuery chan st
 	go func() {
 		defer close(valCh)
 		defer close(lookupResCh)
-		lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, datapoint.KademliaMessageTypeGetValue)
+		lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, pb.Message_GET_VALUE)
 		lookupRes, err := dht.runLookupWithFollowup(lookupCtx, key,
 			func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 				// For DHT query command
@@ -516,7 +516,7 @@ func (dht *IpfsDHT) findProvidersAsyncRoutine(ctx context.Context, key multihash
 		}
 	}
 
-	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, datapoint.KademliaMessageTypeGetProviders)
+	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, pb.Message_GET_PROVIDERS)
 	lookupRes, err := dht.runLookupWithFollowup(lookupCtx, string(key),
 		func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 			// For DHT query command
@@ -585,7 +585,7 @@ func (dht *IpfsDHT) FindPeer(ctx context.Context, id peer.ID) (_ peer.AddrInfo, 
 		return pi, nil
 	}
 
-	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, datapoint.KademliaMessageTypeFindNode)
+	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, pb.Message_FIND_NODE)
 	lookupRes, err := dht.runLookupWithFollowup(lookupCtx, string(id),
 		func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 			// For DHT query command

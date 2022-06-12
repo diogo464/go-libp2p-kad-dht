@@ -97,7 +97,7 @@ func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb
 	}
 
 	measurements.WithKademlia(func(k measurements.Kademlia) {
-		k.IncMessageOut(measurements.ConvertKademliaMessageType(pmes.GetType()))
+		k.IncMessageOut(pmes.GetType())
 	})
 	stats.Record(ctx,
 		metrics.SentRequests.M(1),
@@ -131,7 +131,7 @@ func (m *messageSenderImpl) SendMessage(ctx context.Context, p peer.ID, pmes *pb
 		return err
 	}
 	measurements.WithKademlia(func(k measurements.Kademlia) {
-		k.IncMessageOut(measurements.ConvertKademliaMessageType(pmes.GetType()))
+		k.IncMessageOut(pmes.GetType())
 	})
 	stats.Record(ctx,
 		metrics.SentMessages.M(1),

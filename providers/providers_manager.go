@@ -314,6 +314,7 @@ func (pm *ProviderManager) GetProviderRecords(ctx context.Context) (<-chan Provi
 	crecords := make(chan ProviderRecord)
 
 	go func() {
+		defer close(crecords)
 	LOOP:
 		for {
 			select {
@@ -369,8 +370,6 @@ func (pm *ProviderManager) GetProviderRecords(ctx context.Context) (<-chan Provi
 				break
 			}
 		}
-
-		close(crecords)
 	}()
 
 	return crecords, nil
