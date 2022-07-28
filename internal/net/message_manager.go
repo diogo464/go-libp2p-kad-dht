@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/diogo464/telemetry/pkg/telemetry/measurements"
+	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"

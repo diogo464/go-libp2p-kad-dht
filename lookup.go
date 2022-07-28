@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/diogo464/telemetry/pkg/telemetry/measurements"
+	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
