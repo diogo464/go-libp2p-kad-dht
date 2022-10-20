@@ -3,13 +3,13 @@ package providers
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 
 	mh "github.com/multiformats/go-multihash"
 
@@ -27,7 +27,11 @@ func TestProviderManager(t *testing.T) {
 	defer cancel()
 
 	mid := peer.ID("testing")
-	p, err := NewProviderManager(ctx, mid, pstoremem.NewPeerstore(), dssync.MutexWrap(ds.NewMapDatastore()))
+	ps, err := pstoremem.NewPeerstore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := NewProviderManager(ctx, mid, ps, dssync.MutexWrap(ds.NewMapDatastore()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +72,12 @@ func TestProvidersDatastore(t *testing.T) {
 	defer cancel()
 
 	mid := peer.ID("testing")
-	p, err := NewProviderManager(ctx, mid, pstoremem.NewPeerstore(), dssync.MutexWrap(ds.NewMapDatastore()))
+	ps, err := pstoremem.NewPeerstore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := NewProviderManager(ctx, mid, ps, dssync.MutexWrap(ds.NewMapDatastore()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +162,11 @@ func TestProvidesExpire(t *testing.T) {
 
 	ds := dssync.MutexWrap(ds.NewMapDatastore())
 	mid := peer.ID("testing")
-	p, err := NewProviderManager(ctx, mid, pstoremem.NewPeerstore(), ds)
+	ps, err := pstoremem.NewPeerstore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := NewProviderManager(ctx, mid, ps, ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +235,7 @@ func TestProvidesExpire(t *testing.T) {
 	}
 }
 
-var _ = ioutil.NopCloser
+var _ = io.NopCloser
 var _ = os.DevNull
 
 // TestLargeProvidersSet can be used for profiling.
@@ -235,24 +248,23 @@ func TestLargeProvidersSet(t *testing.T) {
 
 	dstore := ds.NewMapDatastore()
 
-	//dirn, err := ioutil.TempDir("", "provtest")
-	//if err != nil {
+	//dirn, err := os.MkdirTemp("", "provtest")
 	//	t.Fatal(err)
-	//}
+	// }
 	//
-	//opts := &lds.Options{
+	// opts := &lds.Options{
 	//	NoSync:      true,
 	//	Compression: 1,
-	//}
-	//lds, err := lds.NewDatastore(dirn, opts)
-	//if err != nil {
+	// }
+	// lds, err := lds.NewDatastore(dirn, opts)
+	// if err != nil {
 	//	t.Fatal(err)
-	//}
-	//dstore = lds
+	// }
+	// dstore = lds
 	//
-	//defer func() {
+	// defer func() {
 	//	os.RemoveAll(dirn)
-	//}()
+	// }()
 
 	ctx := context.Background()
 	var peers []peer.ID
@@ -261,7 +273,12 @@ func TestLargeProvidersSet(t *testing.T) {
 	}
 
 	mid := peer.ID("myself")
-	p, err := NewProviderManager(ctx, mid, pstoremem.NewPeerstore(), dstore)
+	ps, err := pstoremem.NewPeerstore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := NewProviderManager(ctx, mid, ps, dstore)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +313,12 @@ func TestUponCacheMissProvidersAreReadFromDatastore(t *testing.T) {
 	p1, p2 := peer.ID("a"), peer.ID("b")
 	h1 := u.Hash([]byte("1"))
 	h2 := u.Hash([]byte("2"))
-	pm, err := NewProviderManager(ctx, p1, pstoremem.NewPeerstore(), dssync.MutexWrap(ds.NewMapDatastore()))
+	ps, err := pstoremem.NewPeerstore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pm, err := NewProviderManager(ctx, p1, ps, dssync.MutexWrap(ds.NewMapDatastore()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +342,12 @@ func TestWriteUpdatesCache(t *testing.T) {
 
 	p1, p2 := peer.ID("a"), peer.ID("b")
 	h1 := u.Hash([]byte("1"))
-	pm, err := NewProviderManager(ctx, p1, pstoremem.NewPeerstore(), dssync.MutexWrap(ds.NewMapDatastore()))
+	ps, err := pstoremem.NewPeerstore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pm, err := NewProviderManager(ctx, p1, ps, dssync.MutexWrap(ds.NewMapDatastore()))
 	if err != nil {
 		t.Fatal(err)
 	}

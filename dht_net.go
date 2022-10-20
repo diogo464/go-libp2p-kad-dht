@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal/net"
 	"github.com/libp2p/go-libp2p-kad-dht/metrics"

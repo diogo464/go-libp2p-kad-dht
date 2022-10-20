@@ -7,17 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/event"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p/core/event"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/multiformats/go-multistream"
@@ -33,8 +34,8 @@ import (
 	u "github.com/ipfs/go-ipfs-util"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 	record "github.com/libp2p/go-libp2p-record"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 )
 
 var testCaseCids []cid.Cid
@@ -116,11 +117,13 @@ func setupDHT(ctx context.Context, t *testing.T, client bool, options ...Option)
 		baseOpts = append(baseOpts, Mode(ModeServer))
 	}
 
-	host, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	host, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	t.Cleanup(func() { host.Close() })
 
 	d, err := New(ctx, host, append(baseOpts, options...)...)
 	require.NoError(t, err)
+	t.Cleanup(func() { d.Close() })
 	return d
 }
 
@@ -611,7 +614,7 @@ func waitForWellFormedTables(t *testing.T, dhts []*IpfsDHT, minPeers, avgPeers i
 			rtlen := dht.routingTable.Size()
 			totalPeers += rtlen
 			if minPeers > 0 && rtlen < minPeers {
-				//t.Logf("routing table for %s only has %d peers (should have >%d)", dht.self, rtlen, minPeers)
+				// t.Logf("routing table for %s only has %d peers (should have >%d)", dht.self, rtlen, minPeers)
 				return false
 			}
 		}
@@ -703,7 +706,7 @@ func TestRefreshBelowMinRTThreshold(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	host, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	host, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
 
 	// enable auto bootstrap on A
@@ -797,6 +800,9 @@ func TestPeriodicRefresh(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping due to #760")
+	}
 	if detectrace.WithRace() {
 		t.Skip("skipping due to race detector max goroutines")
 	}
@@ -858,6 +864,9 @@ func TestPeriodicRefresh(t *testing.T) {
 }
 
 func TestProvidesMany(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping due to #760")
+	}
 	if detectrace.WithRace() {
 		t.Skip("skipping due to race detector max goroutines")
 	}
@@ -1116,12 +1125,16 @@ func TestFindPeerWithQueryFilter(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping due to #760")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	filteredPeer, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	filteredPeer, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	defer filteredPeer.Close()
 	dhts := setupDHTS(t, ctx, 4, QueryFilter(func(_ interface{}, ai peer.AddrInfo) bool {
 		return ai.ID != filteredPeer.ID()
 	}))
@@ -1365,6 +1378,10 @@ func testFindPeerQuery(t *testing.T,
 	leafs, // Number of nodes that might be connected to from the bootstrappers
 	bootstrapConns int, // Number of bootstrappers each leaf should connect to.
 ) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping due to #760")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -1584,15 +1601,17 @@ func TestHandleRemotePeerProtocolChanges(t *testing.T) {
 	}
 
 	// start host 1 that speaks dht v1
-	hA, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	hA, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	defer hA.Close()
 	dhtA, err := New(ctx, hA, os...)
 	require.NoError(t, err)
 	defer dhtA.Close()
 
 	// start host 2 that also speaks dht v1
-	hB, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	hB, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	defer hB.Close()
 	dhtB, err := New(ctx, hB, os...)
 	require.NoError(t, err)
 	defer dhtB.Close()
@@ -1627,15 +1646,19 @@ func TestGetSetPluggedProtocol(t *testing.T) {
 			DisableAutoRefresh(),
 		}
 
-		hA, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+		hA, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 		require.NoError(t, err)
+		defer hA.Close()
 		dhtA, err := New(ctx, hA, os...)
 		require.NoError(t, err)
+		defer dhtA.Close()
 
-		hB, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+		hB, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 		require.NoError(t, err)
+		defer hB.Close()
 		dhtB, err := New(ctx, hB, os...)
 		require.NoError(t, err)
+		defer dhtB.Close()
 
 		connect(t, ctx, dhtA, dhtB)
 
@@ -1654,8 +1677,9 @@ func TestGetSetPluggedProtocol(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		hA, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+		hA, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 		require.NoError(t, err)
+		defer hA.Close()
 		dhtA, err := New(ctx, hA, []Option{
 			ProtocolPrefix("/esh"),
 			Mode(ModeServer),
@@ -1663,9 +1687,11 @@ func TestGetSetPluggedProtocol(t *testing.T) {
 			DisableAutoRefresh(),
 		}...)
 		require.NoError(t, err)
+		defer dhtA.Close()
 
-		hB, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+		hB, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 		require.NoError(t, err)
+		defer hB.Close()
 		dhtB, err := New(ctx, hB, []Option{
 			ProtocolPrefix("/lsr"),
 			Mode(ModeServer),
@@ -1673,6 +1699,7 @@ func TestGetSetPluggedProtocol(t *testing.T) {
 			DisableAutoRefresh(),
 		}...)
 		require.NoError(t, err)
+		defer dhtB.Close()
 
 		connectNoSync(t, ctx, dhtA, dhtB)
 
@@ -1930,14 +1957,14 @@ func TestBootStrapWhenRTIsEmpty(t *testing.T) {
 
 	{
 
-		//----------------
+		// ----------------
 		// We will initialize a DHT with 1 bootstrapper, connect it to another DHT,
 		// then remove the latter from the Routing Table
 		// This should add the bootstrap peer and the peer that the bootstrap peer is conencted to
 		// to it's Routing Table.
 		// AutoRefresh needs to be enabled for this.
 
-		h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+		h1, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 		require.NoError(t, err)
 		dht1, err := New(
 			ctx,
@@ -1970,14 +1997,14 @@ func TestBootStrapWhenRTIsEmpty(t *testing.T) {
 
 	{
 
-		//----------------
+		// ----------------
 		// We will initialize a DHT with 2 bootstrappers, connect it to another DHT,
 		// then remove the DHT handler from the other DHT which should make the first DHT's
 		// routing table empty.
 		// This should add the bootstrap peers and the peer thats the bootstrap peers are connected to
 		// to it's Routing Table.
 		// AutoRefresh needs to be enabled for this.
-		h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+		h1, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 		require.NoError(t, err)
 		dht1, err := New(
 			ctx,
@@ -2053,14 +2080,17 @@ func TestPreconnectedNodes(t *testing.T) {
 	}
 
 	// Create hosts
-	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	h1, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
-	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	defer h1.Close()
+	h2, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	defer h2.Close()
 
 	// Setup first DHT
 	d1, err := New(ctx, h1, opts...)
 	require.NoError(t, err)
+	defer d1.Close()
 
 	// Connect the first host to the second
 	err = h1.Connect(ctx, peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
@@ -2078,6 +2108,7 @@ func TestPreconnectedNodes(t *testing.T) {
 	// Setup the second DHT
 	d2, err := New(ctx, h2, opts...)
 	require.NoError(t, err)
+	defer h2.Close()
 
 	// See if it works
 	peers, err := d2.GetClosestPeers(ctx, "testkey")

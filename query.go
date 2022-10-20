@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/routing"
 
 	"github.com/google/uuid"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-msgio"

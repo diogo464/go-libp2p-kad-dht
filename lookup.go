@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )

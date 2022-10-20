@@ -7,14 +7,14 @@ import (
 
 	"github.com/ipfs/go-cid"
 	u "github.com/ipfs/go-ipfs-util"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	test "github.com/libp2p/go-libp2p-kad-dht/internal/testing"
 	record "github.com/libp2p/go-libp2p-record"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	peerstore "github.com/libp2p/go-libp2p/core/peerstore"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -57,8 +57,9 @@ func MkFilterForPeer() (func(_ interface{}, p peer.ID) bool, *customRtHelper) {
 }
 
 func setupDHTWithFilters(ctx context.Context, t *testing.T, options ...dht.Option) (*DHT, []*customRtHelper) {
-	h, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	h, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	t.Cleanup(func() { h.Close() })
 
 	wanFilter, wanRef := MkFilterForPeer()
 	wanOpts := []dht.Option{
@@ -89,8 +90,9 @@ func setupDHTWithFilters(ctx context.Context, t *testing.T, options ...dht.Optio
 func setupDHT(ctx context.Context, t *testing.T, options ...dht.Option) *DHT {
 	t.Helper()
 
-	host, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	host, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	t.Cleanup(func() { host.Close() })
 
 	baseOpts := []dht.Option{
 		dht.NamespacedValidator("v", blankValidator{}),
@@ -125,7 +127,7 @@ func connect(ctx context.Context, t *testing.T, a, b *dht.IpfsDHT) {
 func wait(ctx context.Context, t *testing.T, a, b *dht.IpfsDHT) {
 	t.Helper()
 	for a.RoutingTable().Find(b.PeerID()) == "" {
-		//fmt.Fprintf(os.Stderr, "%v\n", a.RoutingTable().GetPeerInfos())
+		// fmt.Fprintf(os.Stderr, "%v\n", a.RoutingTable().GetPeerInfos())
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
@@ -144,8 +146,9 @@ func setupTier(ctx context.Context, t *testing.T) (*DHT, *dht.IpfsDHT, *dht.Ipfs
 
 	d, hlprs := setupDHTWithFilters(ctx, t)
 
-	whost, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	whost, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	t.Cleanup(func() { whost.Close() })
 
 	wan, err := dht.New(
 		ctx,
@@ -158,8 +161,9 @@ func setupTier(ctx context.Context, t *testing.T) (*DHT, *dht.IpfsDHT, *dht.Ipfs
 	hlprs[0].allow = wan.PeerID()
 	connect(ctx, t, d.WAN, wan)
 
-	lhost, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDisableReuseport), new(bhost.HostOpts))
+	lhost, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableReuseport), new(bhost.HostOpts))
 	require.NoError(t, err)
+	t.Cleanup(func() { lhost.Close() })
 
 	lan, err := dht.New(
 		ctx,
