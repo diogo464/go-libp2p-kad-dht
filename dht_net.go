@@ -4,7 +4,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
 	"github.com/libp2p/go-libp2p/core/network"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal/net"
@@ -96,12 +95,12 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 			tag.Upsert(metrics.KeyMessageType, req.GetType().String()),
 		)
 
+		dht.telem.MessageIn(ctx, req.GetType())
 		stats.Record(ctx,
 			metrics.ReceivedMessages.M(1),
 			metrics.ReceivedBytes.M(int64(msgLen)),
 		)
 
-		measurements.WithKademlia(func(k measurements.Kademlia) { k.IncMessageIn(req.GetType()) })
 		handler := dht.handlerForMsgType(req.GetType())
 		if handler == nil {
 			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
@@ -161,10 +160,7 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		}
 
 		elapsedTime := time.Since(startTime)
-
-		measurements.WithKademlia(func(k measurements.Kademlia) {
-			k.PushHandler(mPeer, req.GetType(), handlerDuration, writeDuration)
-		})
+		dht.telem.Handler(ctx, req.GetType(), writeDuration, handlerDuration)
 
 		if c := baseLogger.Check(zap.DebugLevel, "responded to message"); c != nil {
 			c.Write(zap.String("from", mPeer.String()),

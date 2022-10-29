@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/diogo464/telemetry"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 
 	"github.com/ipfs/go-cid"
@@ -96,11 +97,13 @@ func DHTOption(opts ...dht.Option) Option {
 // will be overriden by this constructor.
 func New(ctx context.Context, h host.Host, options ...Option) (*DHT, error) {
 	var cfg config
+
 	err := cfg.apply(
 		WanDHTOption(
 			dht.QueryFilter(dht.PublicQueryFilter),
 			dht.RoutingTableFilter(dht.PublicRoutingTableFilter),
 			dht.RoutingTablePeerDiversityFilter(dht.NewRTPeerDiversityFilter(h, maxPrefixCountPerCpl, maxPrefixCount)),
+			dht.WithTelemetry(telemetry.GetGlobalTelemetry()),
 		),
 	)
 	if err != nil {

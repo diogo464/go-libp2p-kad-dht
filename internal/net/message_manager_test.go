@@ -23,7 +23,7 @@ func TestInvalidMessageSenderTracking(t *testing.T) {
 	require.NoError(t, err)
 	defer h.Close()
 
-	msgSender := NewMessageSenderImpl(h, []protocol.ID{"/test/kad/1.0.0"}).(*messageSenderImpl)
+	msgSender := NewMessageSenderImpl(h, []protocol.ID{"/test/kad/1.0.0"}, nil).(*messageSenderImpl)
 
 	_, err = msgSender.messageSenderForPeer(ctx, foo)
 	require.Error(t, err, "should have failed to find message sender")

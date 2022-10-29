@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
-	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 
@@ -23,8 +21,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID,
 		return nil, fmt.Errorf("can't lookup empty key")
 	}
 	//TODO: I can break the interface! return []peer.ID
-	lookupCtx := context.WithValue(ctx, measurements.KademliaQueryTypeKey{}, pb.Message_FIND_NODE)
-	lookupRes, err := dht.runLookupWithFollowup(lookupCtx, key,
+	lookupRes, err := dht.runLookupWithFollowup(ctx, key,
 		func(ctx context.Context, p peer.ID) ([]*peer.AddrInfo, error) {
 			// For DHT query command
 			routing.PublishQueryEvent(ctx, &routing.QueryEvent{

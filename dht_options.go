@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/diogo464/telemetry"
 	dhtcfg "github.com/libp2p/go-libp2p-kad-dht/internal/config"
 	"github.com/libp2p/go-libp2p-kad-dht/providers"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -287,6 +288,13 @@ func BootstrapPeersFunc(getBootstrapPeers func() []peer.AddrInfo) Option {
 func RoutingTablePeerDiversityFilter(pg peerdiversity.PeerIPGroupFilter) Option {
 	return func(c *dhtcfg.Config) error {
 		c.RoutingTable.DiversityFilter = pg
+		return nil
+	}
+}
+
+func WithTelemetry(t telemetry.Telemetry) Option {
+	return func(c *dhtcfg.Config) error {
+		c.Telemetry = t
 		return nil
 	}
 }

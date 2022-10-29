@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/diogo464/telemetry"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipns"
@@ -62,6 +63,7 @@ type Config struct {
 	// test specific Config options
 	DisableFixLowPeers          bool
 	TestAddressUpdateProcessing bool
+	Telemetry                   telemetry.Telemetry
 }
 
 func EmptyQueryFilter(_ interface{}, ai peer.AddrInfo) bool { return true }
@@ -93,6 +95,9 @@ func (c *Config) ApplyFallbacks(h host.Host) error {
 			return fmt.Errorf("the default Validator was changed without being marked as changed")
 		}
 	}
+	if c.Telemetry == nil {
+		c.Telemetry = telemetry.NewNoOpTelemetry()
+	}
 	return nil
 }
 
@@ -119,6 +124,8 @@ var Defaults = func(o *Config) error {
 	o.BucketSize = defaultBucketSize
 	o.Concurrency = 10
 	o.Resiliency = 3
+
+	o.Telemetry = telemetry.NewNoOpTelemetry()
 
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/diogo464/ipfs_telemetry/pkg/measurements"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -22,6 +21,7 @@ import (
 	"go.opencensus.io/tag"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
+	"github.com/libp2p/go-libp2p-kad-dht/internal/telemetry"
 	"github.com/libp2p/go-libp2p-kad-dht/metrics"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 )
@@ -40,13 +40,15 @@ type messageSenderImpl struct {
 	smlk      sync.Mutex
 	strmap    map[peer.ID]*peerMessageSender
 	protocols []protocol.ID
+	telem     *telemetry.Metrics
 }
 
-func NewMessageSenderImpl(h host.Host, protos []protocol.ID) pb.MessageSender {
+func NewMessageSenderImpl(h host.Host, protos []protocol.ID, telem *telemetry.Metrics) pb.MessageSender {
 	return &messageSenderImpl{
 		host:      h,
 		strmap:    make(map[peer.ID]*peerMessageSender),
 		protocols: protos,
+		telem:     telem,
 	}
 }
 
@@ -96,9 +98,9 @@ func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb
 		return nil, err
 	}
 
-	measurements.WithKademlia(func(k measurements.Kademlia) {
-		k.IncMessageOut(pmes.GetType())
-	})
+	if m.telem != nil {
+		m.telem.MessageOut(ctx, pmes.GetType())
+	}
 	stats.Record(ctx,
 		metrics.SentRequests.M(1),
 		metrics.SentBytes.M(int64(pmes.Size())),
@@ -130,9 +132,10 @@ func (m *messageSenderImpl) SendMessage(ctx context.Context, p peer.ID, pmes *pb
 		logger.Debugw("message failed", "error", err, "to", p)
 		return err
 	}
-	measurements.WithKademlia(func(k measurements.Kademlia) {
-		k.IncMessageOut(pmes.GetType())
-	})
+
+	if m.telem != nil {
+		m.telem.MessageOut(ctx, pmes.GetType())
+	}
 	stats.Record(ctx,
 		metrics.SentMessages.M(1),
 		metrics.SentBytes.M(int64(pmes.Size())),
