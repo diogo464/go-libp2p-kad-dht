@@ -3,7 +3,7 @@ module github.com/libp2p/go-libp2p-kad-dht
 go 1.18
 
 require (
-	github.com/diogo464/telemetry v0.0.0-00010101000000-000000000000
+	github.com/diogo464/telemetry v0.0.0-20230119205317-4e2e5a84322a
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.3.0
@@ -137,8 +137,4 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
-replace github.com/libp2p/go-libp2p-kbucket => ../go-libp2p-kbucket/
-
-replace github.com/diogo464/ipfs_telemetry => ../../
-
-replace github.com/diogo464/telemetry => ../../../telemetry
+replace github.com/libp2p/go-libp2p-kbucket => github.com/diogo464/go-libp2p-kbucket v0.4.8-0.20221020135152-df843e2c8b05

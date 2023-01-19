@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // DefaultPrefix is the application specific prefix attached to all DHT protocols by default.
@@ -63,7 +64,7 @@ type Config struct {
 	// test specific Config options
 	DisableFixLowPeers          bool
 	TestAddressUpdateProcessing bool
-	Telemetry                   telemetry.Telemetry
+	MeterProvider               metric.MeterProvider
 }
 
 func EmptyQueryFilter(_ interface{}, ai peer.AddrInfo) bool { return true }
@@ -95,8 +96,8 @@ func (c *Config) ApplyFallbacks(h host.Host) error {
 			return fmt.Errorf("the default Validator was changed without being marked as changed")
 		}
 	}
-	if c.Telemetry == nil {
-		c.Telemetry = telemetry.NewNoOpTelemetry()
+	if c.MeterProvider == nil {
+		c.MeterProvider = metric.NewNoopMeterProvider()
 	}
 	return nil
 }
@@ -125,7 +126,7 @@ var Defaults = func(o *Config) error {
 	o.Concurrency = 10
 	o.Resiliency = 3
 
-	o.Telemetry = telemetry.NewNoOpTelemetry()
+	o.MeterProvider = telemetry.NewNoopMeterProvider()
 
 	return nil
 }

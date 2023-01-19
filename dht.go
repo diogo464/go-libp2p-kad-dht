@@ -181,7 +181,7 @@ func New(ctx context.Context, h host.Host, options ...Option) (*IpfsDHT, error) 
 		return nil, err
 	}
 
-	telem, err := telemetry.NewMetrics(cfg.Telemetry)
+	telem, err := telemetry.NewMetrics(cfg.MeterProvider)
 	if err != nil {
 		return nil, err
 	}

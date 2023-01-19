@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/diogo464/telemetry"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"go.opentelemetry.io/otel/metric/global"
 
 	"github.com/ipfs/go-cid"
 	kb "github.com/libp2p/go-libp2p-kbucket"
@@ -103,7 +103,7 @@ func New(ctx context.Context, h host.Host, options ...Option) (*DHT, error) {
 			dht.QueryFilter(dht.PublicQueryFilter),
 			dht.RoutingTableFilter(dht.PublicRoutingTableFilter),
 			dht.RoutingTablePeerDiversityFilter(dht.NewRTPeerDiversityFilter(h, maxPrefixCountPerCpl, maxPrefixCount)),
-			dht.WithTelemetry(telemetry.GetGlobalTelemetry()),
+			dht.WithMeterProvider(global.MeterProvider()),
 		),
 	)
 	if err != nil {

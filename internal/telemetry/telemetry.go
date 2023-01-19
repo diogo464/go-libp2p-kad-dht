@@ -7,6 +7,7 @@ import (
 	"github.com/diogo464/telemetry"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/instrument"
 	"go.opentelemetry.io/otel/metric/instrument/syncint64"
 	"go.opentelemetry.io/otel/metric/unit"
@@ -34,8 +35,8 @@ type Metrics struct {
 	eventHandler telemetry.EventEmitter
 }
 
-func NewMetrics(t telemetry.Telemetry) (*Metrics, error) {
-	m := t.Meter("libp2p.io/dht/kad")
+func NewMetrics(provider metric.MeterProvider) (*Metrics, error) {
+	m := provider.Meter("libp2p.io/dht/kad")
 
 	MessageIn, err := m.SyncInt64().Counter(
 		"message_in",
@@ -55,10 +56,13 @@ func NewMetrics(t telemetry.Telemetry) (*Metrics, error) {
 		return nil, err
 	}
 
-	eventHandler := t.Event(telemetry.EventConfig{
-		Name:        "libp2p_kad_handler",
-		Description: "Message handler timings",
-	})
+	tprovider := telemetry.DowncastMeterProvider(provider)
+	m2 := tprovider.TelemetryMeter("libp2p.io/telemetry")
+
+	eventHandler := m2.Event(
+		"kad.handler_timings",
+		instrument.WithDescription("Message handler timings"),
+	)
 
 	return &Metrics{
 		messageIn:    MessageIn,

@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diogo464/telemetry"
 	dhtcfg "github.com/libp2p/go-libp2p-kad-dht/internal/config"
 	"github.com/libp2p/go-libp2p-kad-dht/providers"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/libp2p/go-libp2p-kbucket/peerdiversity"
 	record "github.com/libp2p/go-libp2p-record"
@@ -292,9 +292,10 @@ func RoutingTablePeerDiversityFilter(pg peerdiversity.PeerIPGroupFilter) Option 
 	}
 }
 
-func WithTelemetry(t telemetry.Telemetry) Option {
+// WithMeterProvider configures the DHT to use the given MeterProvider.
+func WithMeterProvider(provider metric.MeterProvider) Option {
 	return func(c *dhtcfg.Config) error {
-		c.Telemetry = t
+		c.MeterProvider = provider
 		return nil
 	}
 }
