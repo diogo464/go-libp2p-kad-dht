@@ -112,7 +112,7 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		resp, err := handler(ctx, mPeer, &req)
 		handlerDuration := time.Since(handlerStart)
 		if err != nil {
-			dht.metrics.ReceivedMessageErrors.Add(ctx, 1, dht.metrics.Attributes()...)
+			dht.metrics.ReceivedMessageErrors.Add(ctx, 1, attrs...)
 			if c := baseLogger.Check(zap.DebugLevel, "error handling message"); c != nil {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Int32("type", int32(req.GetType())),
@@ -138,7 +138,7 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		err = net.WriteMsg(s, resp)
 		writeDuration := time.Since(writeStart)
 		if err != nil {
-			dht.metrics.ReceivedMessageErrors.Add(ctx, 1, dht.metrics.Attributes()...)
+			dht.metrics.ReceivedMessageErrors.Add(ctx, 1, attrs...)
 			if c := baseLogger.Check(zap.DebugLevel, "error writing response"); c != nil {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Int32("type", int32(req.GetType())),
@@ -159,6 +159,6 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		}
 
 		latencyMillis := float64(elapsedTime) / float64(time.Millisecond)
-		dht.metrics.InboundRequestLatency.Record(ctx, latencyMillis, dht.metrics.Attributes()...)
+		dht.metrics.InboundRequestLatency.Record(ctx, latencyMillis, attrs...)
 	}
 }
