@@ -17,12 +17,8 @@ import (
 	"github.com/libp2p/go-msgio"
 	"github.com/libp2p/go-msgio/protoio"
 
-	"go.opencensus.io/stats"
-	"go.opencensus.io/tag"
-
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
-	"github.com/libp2p/go-libp2p-kad-dht/internal/telemetry"
-	"github.com/libp2p/go-libp2p-kad-dht/metrics"
+	metrics "github.com/libp2p/go-libp2p-kad-dht/metrics"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 )
 
@@ -40,15 +36,15 @@ type messageSenderImpl struct {
 	smlk      sync.Mutex
 	strmap    map[peer.ID]*peerMessageSender
 	protocols []protocol.ID
-	telem     *telemetry.Metrics
+	metrics   *metrics.Metrics
 }
 
-func NewMessageSenderImpl(h host.Host, protos []protocol.ID, telem *telemetry.Metrics) pb.MessageSender {
+func NewMessageSenderImpl(h host.Host, protos []protocol.ID, m *metrics.Metrics) pb.MessageSender {
 	return &messageSenderImpl{
 		host:      h,
 		strmap:    make(map[peer.ID]*peerMessageSender),
 		protocols: protos,
-		telem:     telem,
+		metrics:   m,
 	}
 }
 
@@ -74,14 +70,12 @@ func (m *messageSenderImpl) OnDisconnect(ctx context.Context, p peer.ID) {
 // SendRequest sends out a request, but also makes sure to
 // measure the RTT for latency measurements.
 func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	ctx, _ = tag.New(ctx, metrics.UpsertMessageType(pmes))
+	attrs := m.metrics.Attributes(metrics.MessageTypeAttribute(pmes.GetType()))
 
 	ms, err := m.messageSenderForPeer(ctx, p)
 	if err != nil {
-		stats.Record(ctx,
-			metrics.SentRequests.M(1),
-			metrics.SentRequestErrors.M(1),
-		)
+		m.metrics.SentRequests.Add(ctx, 1, attrs...)
+		m.metrics.SentRequestErrors.Add(ctx, 1, attrs...)
 		logger.Debugw("request failed to open message sender", "error", err, "to", p)
 		return nil, err
 	}
@@ -90,56 +84,40 @@ func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb
 
 	rpmes, err := ms.SendRequest(ctx, pmes)
 	if err != nil {
-		stats.Record(ctx,
-			metrics.SentRequests.M(1),
-			metrics.SentRequestErrors.M(1),
-		)
+		m.metrics.SentRequests.Add(ctx, 1, attrs...)
+		m.metrics.SentRequestErrors.Add(ctx, 1, attrs...)
 		logger.Debugw("request failed", "error", err, "to", p)
 		return nil, err
 	}
 
-	if m.telem != nil {
-		m.telem.MessageOut(ctx, pmes.GetType())
-	}
-	stats.Record(ctx,
-		metrics.SentRequests.M(1),
-		metrics.SentBytes.M(int64(pmes.Size())),
-		metrics.OutboundRequestLatency.M(float64(time.Since(start))/float64(time.Millisecond)),
-	)
+	m.metrics.SentRequests.Add(ctx, 1, attrs...)
+	m.metrics.SentBytes.Add(ctx, int64(pmes.Size()), attrs...)
+	m.metrics.OutboundRequestLatency.Record(ctx, float64(time.Since(start))/float64(time.Millisecond), attrs...)
 	m.host.Peerstore().RecordLatency(p, time.Since(start))
 	return rpmes, nil
 }
 
 // SendMessage sends out a message
 func (m *messageSenderImpl) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
-	ctx, _ = tag.New(ctx, metrics.UpsertMessageType(pmes))
+	attrs := m.metrics.Attributes(metrics.MessageTypeAttribute(pmes.GetType()))
 
 	ms, err := m.messageSenderForPeer(ctx, p)
 	if err != nil {
-		stats.Record(ctx,
-			metrics.SentMessages.M(1),
-			metrics.SentMessageErrors.M(1),
-		)
+		m.metrics.SentMessages.Add(ctx, 1, attrs...)
+		m.metrics.SentMessageErrors.Add(ctx, 1, attrs...)
 		logger.Debugw("message failed to open message sender", "error", err, "to", p)
 		return err
 	}
 
 	if err := ms.SendMessage(ctx, pmes); err != nil {
-		stats.Record(ctx,
-			metrics.SentMessages.M(1),
-			metrics.SentMessageErrors.M(1),
-		)
+		m.metrics.SentMessages.Add(ctx, 1, attrs...)
+		m.metrics.SentMessageErrors.Add(ctx, 1, attrs...)
 		logger.Debugw("message failed", "error", err, "to", p)
 		return err
 	}
 
-	if m.telem != nil {
-		m.telem.MessageOut(ctx, pmes.GetType())
-	}
-	stats.Record(ctx,
-		metrics.SentMessages.M(1),
-		metrics.SentBytes.M(int64(pmes.Size())),
-	)
+	m.metrics.SentMessages.Add(ctx, 1, attrs...)
+	m.metrics.SentBytes.Add(ctx, int64(pmes.Size()), attrs...)
 	return nil
 }
 

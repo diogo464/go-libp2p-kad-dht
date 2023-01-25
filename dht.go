@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
 	dhtcfg "github.com/libp2p/go-libp2p-kad-dht/internal/config"
 	"github.com/libp2p/go-libp2p-kad-dht/internal/net"
-	"github.com/libp2p/go-libp2p-kad-dht/internal/telemetry"
 	"github.com/libp2p/go-libp2p-kad-dht/metrics"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 	"github.com/libp2p/go-libp2p-kad-dht/providers"
@@ -35,7 +34,6 @@ import (
 	goprocessctx "github.com/jbenet/goprocess/context"
 	"github.com/multiformats/go-base32"
 	ma "github.com/multiformats/go-multiaddr"
-	"go.opencensus.io/tag"
 	"go.uber.org/zap"
 )
 
@@ -150,7 +148,7 @@ type IpfsDHT struct {
 	// configuration variables for tests
 	testAddressUpdateProcessing bool
 
-	telem *telemetry.Metrics
+	metrics *metrics.Metrics
 }
 
 // Assert that IPFS assumptions about interfaces aren't broken. These aren't a
@@ -181,7 +179,7 @@ func New(ctx context.Context, h host.Host, options ...Option) (*IpfsDHT, error) 
 		return nil, err
 	}
 
-	telem, err := telemetry.NewMetrics(cfg.MeterProvider)
+	telem, err := metrics.New(cfg.MeterProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +272,7 @@ func NewDHTClient(ctx context.Context, h host.Host, dstore ds.Batching) *IpfsDHT
 	return dht
 }
 
-func makeDHT(ctx context.Context, h host.Host, cfg dhtcfg.Config, telem *telemetry.Metrics) (*IpfsDHT, error) {
+func makeDHT(ctx context.Context, h host.Host, cfg dhtcfg.Config, m *metrics.Metrics) (*IpfsDHT, error) {
 	var protocols, serverProtocols []protocol.ID
 
 	v1proto := cfg.ProtocolPrefix + kad1
@@ -308,7 +306,7 @@ func makeDHT(ctx context.Context, h host.Host, cfg dhtcfg.Config, telem *telemet
 		addPeerToRTChan:   make(chan addPeerRTReq),
 		refreshFinishedCh: make(chan struct{}),
 
-		telem: telem,
+		metrics: m,
 	}
 
 	var maxLastSuccessfulOutboundThreshold time.Duration
@@ -346,10 +344,8 @@ func makeDHT(ctx context.Context, h host.Host, cfg dhtcfg.Config, telem *telemet
 		return rtRefresh.Close()
 	})
 
-	// create a tagged context derived from the original context
-	ctxTags := dht.newContextWithLocalTags(ctx)
 	// the DHT context should be done when the process is closed
-	dht.ctx = goprocessctx.WithProcessClosing(ctxTags, dht.proc)
+	dht.ctx = goprocessctx.WithProcessClosing(ctx, dht.proc)
 
 	if cfg.ProviderStore != nil {
 		dht.providerStore = cfg.ProviderStore
@@ -835,22 +831,6 @@ func (dht *IpfsDHT) Host() host.Host {
 // Ping sends a ping message to the passed peer and waits for a response.
 func (dht *IpfsDHT) Ping(ctx context.Context, p peer.ID) error {
 	return dht.protoMessenger.Ping(ctx, p)
-}
-
-// newContextWithLocalTags returns a new context.Context with the InstanceID and
-// PeerID keys populated. It will also take any extra tags that need adding to
-// the context as tag.Mutators.
-func (dht *IpfsDHT) newContextWithLocalTags(ctx context.Context, extraTags ...tag.Mutator) context.Context {
-	extraTags = append(
-		extraTags,
-		tag.Upsert(metrics.KeyPeerID, dht.self.Pretty()),
-		tag.Upsert(metrics.KeyInstanceID, fmt.Sprintf("%p", dht)),
-	)
-	ctx, _ = tag.New(
-		ctx,
-		extraTags...,
-	) // ignoring error as it is unrelated to the actual function of this code.
-	return ctx
 }
 
 func (dht *IpfsDHT) maybeAddAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration) {
