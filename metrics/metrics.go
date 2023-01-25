@@ -39,6 +39,7 @@ var (
 
 	ViewBytesDistribution = sdkmetric.NewView(
 		sdkmetric.Instrument{
+			Kind:  sdkmetric.InstrumentKindSyncHistogram,
 			Unit:  unit.Bytes,
 			Scope: Scope,
 		}, sdkmetric.Stream{
@@ -51,6 +52,7 @@ var (
 
 	ViewMillisecondsDistribution = sdkmetric.NewView(
 		sdkmetric.Instrument{
+			Kind:  sdkmetric.InstrumentKindSyncHistogram,
 			Unit:  unit.Milliseconds,
 			Scope: Scope,
 		}, sdkmetric.Stream{
