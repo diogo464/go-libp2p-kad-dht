@@ -185,10 +185,10 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 	}
 
 	tprovider := telemetry.DowncastMeterProvider(provider)
-	m2 := tprovider.TelemetryMeter("libp2p.io/telemetry")
+	m2 := tprovider.TelemetryMeter(Scope.Name, metric.WithInstrumentationVersion(Scope.Version), metric.WithSchemaURL(Scope.SchemaURL))
 
 	eventHandler := m2.Event(
-		"kad.handler_timings",
+		"handler_timings",
 		instrument.WithDescription("Message handler timings"),
 	)
 
