@@ -3,7 +3,7 @@ module github.com/libp2p/go-libp2p-kad-dht
 go 1.18
 
 require (
-	github.com/diogo464/telemetry v0.0.0-20230125203808-2f6d563d8895
+	github.com/diogo464/telemetry v0.0.0-20230126114716-5df6d8950178
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.3.0
