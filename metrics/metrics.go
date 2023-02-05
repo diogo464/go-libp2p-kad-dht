@@ -9,8 +9,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/instrument"
-	"go.opentelemetry.io/otel/metric/instrument/syncfloat64"
-	"go.opentelemetry.io/otel/metric/instrument/syncint64"
 	"go.opentelemetry.io/otel/metric/unit"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -39,7 +37,7 @@ var (
 
 	ViewBytesDistribution = sdkmetric.NewView(
 		sdkmetric.Instrument{
-			Kind:  sdkmetric.InstrumentKindSyncHistogram,
+			Kind:  sdkmetric.InstrumentKindHistogram,
 			Unit:  unit.Bytes,
 			Scope: Scope,
 		}, sdkmetric.Stream{
@@ -52,7 +50,7 @@ var (
 
 	ViewMillisecondsDistribution = sdkmetric.NewView(
 		sdkmetric.Instrument{
-			Kind:  sdkmetric.InstrumentKindSyncHistogram,
+			Kind:  sdkmetric.InstrumentKindHistogram,
 			Unit:  unit.Milliseconds,
 			Scope: Scope,
 		}, sdkmetric.Stream{
@@ -76,16 +74,16 @@ type handlerEvent struct {
 }
 
 type Metrics struct {
-	ReceivedMessages       syncint64.Counter
-	ReceivedMessageErrors  syncint64.Counter
-	ReceivedBytes          syncint64.Counter
-	InboundRequestLatency  syncfloat64.Histogram
-	OutboundRequestLatency syncfloat64.Histogram
-	SentMessages           syncint64.Counter
-	SentMessageErrors      syncint64.Counter
-	SentRequests           syncint64.Counter
-	SentRequestErrors      syncint64.Counter
-	SentBytes              syncint64.Counter
+	ReceivedMessages       instrument.Int64Counter
+	ReceivedMessageErrors  instrument.Int64Counter
+	ReceivedBytes          instrument.Int64Counter
+	InboundRequestLatency  instrument.Float64Histogram
+	OutboundRequestLatency instrument.Float64Histogram
+	SentMessages           instrument.Int64Counter
+	SentMessageErrors      instrument.Int64Counter
+	SentRequests           instrument.Int64Counter
+	SentRequestErrors      instrument.Int64Counter
+	SentBytes              instrument.Int64Counter
 
 	attributes   []attribute.KeyValue
 	eventHandler telemetry.EventEmitter
@@ -94,7 +92,7 @@ type Metrics struct {
 func New(provider metric.MeterProvider) (*Metrics, error) {
 	m := provider.Meter(Scope.Name, metric.WithInstrumentationVersion(Scope.Version), metric.WithSchemaURL(Scope.SchemaURL))
 
-	ReceivedMessages, err := m.SyncInt64().Counter(
+	ReceivedMessages, err := m.Int64Counter(
 		"kad.received_messages",
 		instrument.WithDescription("Total number of messages received per RPC"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -103,7 +101,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	ReceivedMessageErrors, err := m.SyncInt64().Counter(
+	ReceivedMessageErrors, err := m.Int64Counter(
 		"kad.received_message_errors",
 		instrument.WithDescription("Total number of errors for messages received per RPC"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -112,7 +110,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	ReceivedBytes, err := m.SyncInt64().Counter(
+	ReceivedBytes, err := m.Int64Counter(
 		"kad.received_bytes",
 		instrument.WithDescription("Total received bytes per RPC"),
 		instrument.WithUnit(unit.Bytes),
@@ -121,7 +119,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	InboundRequestLatency, err := m.SyncFloat64().Histogram(
+	InboundRequestLatency, err := m.Float64Histogram(
 		"kad.inbound_request_latency",
 		instrument.WithDescription("Latency per RPC"),
 		instrument.WithUnit(unit.Milliseconds),
@@ -130,7 +128,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	OutboundRequestLatency, err := m.SyncFloat64().Histogram(
+	OutboundRequestLatency, err := m.Float64Histogram(
 		"kad.outbound_request_latency",
 		instrument.WithDescription("Latency per RPC"),
 		instrument.WithUnit(unit.Milliseconds),
@@ -139,7 +137,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	SentMessages, err := m.SyncInt64().Counter(
+	SentMessages, err := m.Int64Counter(
 		"kad.sent_messages",
 		instrument.WithDescription("Total number of messages sent per RPC"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -148,7 +146,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	SentMessageErrors, err := m.SyncInt64().Counter(
+	SentMessageErrors, err := m.Int64Counter(
 		"kad.sent_message_errors",
 		instrument.WithDescription("Total number of errors for messages sent per RPC"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -157,7 +155,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	SentRequests, err := m.SyncInt64().Counter(
+	SentRequests, err := m.Int64Counter(
 		"kad.sent_requests",
 		instrument.WithDescription("Total number of requests sent per RPC"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -166,7 +164,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	SentRequestErrors, err := m.SyncInt64().Counter(
+	SentRequestErrors, err := m.Int64Counter(
 		"kad.sent_request_errors",
 		instrument.WithDescription("Total number of errors for requests sent per RPC"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -175,7 +173,7 @@ func New(provider metric.MeterProvider) (*Metrics, error) {
 		return nil, err
 	}
 
-	SentBytes, err := m.SyncInt64().Counter(
+	SentBytes, err := m.Int64Counter(
 		"kad.sent_bytes",
 		instrument.WithDescription("Total sent bytes per RPC"),
 		instrument.WithUnit(unit.Bytes),
